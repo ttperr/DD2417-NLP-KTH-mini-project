@@ -78,11 +78,11 @@ class MultiHeadSelfAttention(nn.Module):
         return self.final( self_attention )
     
     
-    class PositionwiseFFN(nn.Module):
-        """
-        The position-wise FFN that follows after the self-attention
-        computation.
-        """
+class PositionwiseFFN(nn.Module):
+    """
+    The position-wise FFN that follows after the self-attention
+    computation.
+    """
     def __init__(self, hidden_size, dropout_prob) :
         super().__init__()
         self.fc1 = nn.Linear(hidden_size, hidden_size, bias=True)
