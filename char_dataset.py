@@ -51,9 +51,6 @@ class CharDataset(Dataset) :
             for i in range(len(lbl_ids)) :
                 self.datapoints.append(feat_ids[-max_len + i:] + lbl_ids[:i])
                 self.labels.append(lbl_ids[i])
-        
-        print("finished")
-        print(self.labels)
 
     def __len__(self) :
         return len(self.datapoints)
