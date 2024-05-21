@@ -26,10 +26,10 @@ class CharDataset(Dataset) :
             words = seq.split(" ")
 
             lbl_words = " ".join(words[-2:])
-            lbl_chars = [c for c in lbl_words] + [self.BOQ]
+            lbl_chars = [c for c in lbl_words if c != '?'] + [self.BOQ]
 
             feat_words = " ".join(words[:-2])
-            feat_chars = [c for c in feat_words]
+            feat_chars = [c for c in feat_words] + ['?' if lbl_words[0][0] == '?' else '']
 
             # Updating vocabulary
             lbl_ids = []
@@ -49,7 +49,8 @@ class CharDataset(Dataset) :
                         
             # Building features and labels
             for i in range(len(lbl_ids)) :
-                self.datapoints.append(feat_ids[-max_len + i:] + lbl_ids[:i])
+                ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
+                self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt))  + ctxt)
                 self.labels.append(lbl_ids[i])
 
     def __len__(self) :
