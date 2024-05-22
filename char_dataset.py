@@ -4,6 +4,7 @@ from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
 from datetime import datetime
 import math
+import random
 
 class CharDataset(Dataset) :
 
@@ -50,8 +51,17 @@ class CharDataset(Dataset) :
             # Building features and labels
             for i in range(len(lbl_ids)) :
                 ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
-                self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt))  + ctxt)
+                self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt)
                 self.labels.append(lbl_ids[i])
+
+                """# Checking that the dimension is correct
+                if len([self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt )!= max_len :
+                    print(seq[::-1])"""
+
+        # shuffling the dataset
+        combined = list(zip(self.datapoints, self.labels))
+        random.shuffle(combined)
+        self.datapoints, self.labels = zip(*combined)
 
     def __len__(self) :
         return len(self.datapoints)
@@ -59,3 +69,4 @@ class CharDataset(Dataset) :
     def __getitem__(self, idx) :
         idx = idx % len(self.datapoints)
         return torch.tensor(self.datapoints[idx]), torch.tensor(self.labels[idx], dtype=torch.long)
+    
