@@ -60,9 +60,7 @@ class MultiHeadSelfAttention(nn.Module):
         # We want zero scores to be zero probabilities -- hence we turn
         # zero scores into -infinity before the softmax exponentiation.
         
-        # YOUR CODE HERE
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
-        attention_output = torch.matmul(attention_probs, V)
         
         # Now produce the contextualized vectors for each head
         # The tensor below will have shape (batch_size, number_of_heads, seq_length, head_size)
