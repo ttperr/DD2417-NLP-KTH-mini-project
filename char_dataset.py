@@ -24,13 +24,18 @@ class CharDataset(Dataset) :
         self.labels = []
 
         for seq in dataset:
+            # Will be used for context
+            words_a, words_q = seq.split("?")
+            words_a = list(" ".join(words_a))
+            words_q = list(" ".join(words_q))
+
             words = seq.split(" ")
 
             lbl_words = " ".join(words[-2:])
-            lbl_chars = [c for c in lbl_words if c != '?'] + [self.BOQ]
+            lbl_chars = list(lbl_words) if lbl_words[0][0] != '?' else list(lbl_words)[1:]
 
             feat_words = " ".join(words[:-2])
-            feat_chars = [c for c in feat_words] + ['?' if lbl_words[0][0] == '?' else '']
+            feat_chars = list(feat_words) + ['?' if lbl_words[0][0] == '?' else '']
 
             # Updating vocabulary
             lbl_ids = []
@@ -47,12 +52,23 @@ class CharDataset(Dataset) :
                     self.char_to_id[c] = len(self.id_to_char)
                     self.id_to_char[len(self.id_to_char)] = c
                 feat_ids.append(self.char_to_id[c])
+            
+            words_a_id = [self.char_to_id[c] for c in words_a]
                         
-            # Building features and labels
+            # Building features and labels. Contexts using beginning of answer and end of question
             for i in range(len(lbl_ids)) :
-                ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
+                # Second version
+                if len(words_q) - len(lbl_chars) > max_len//2 :
+                    ctxt = words_a_id[-max_len//2:] + feat_ids[-max_len//2 + i:] + lbl_ids[:i]
+                else :
+                    ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
                 self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt)
                 self.labels.append(lbl_ids[i])
+
+                # First sequential version
+                """ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
+                self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt)
+                self.labels.append(lbl_ids[i])"""
 
                 """# Checking that the dimension is correct
                 if len([self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt )!= max_len :

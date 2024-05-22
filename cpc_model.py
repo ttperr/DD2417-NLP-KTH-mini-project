@@ -5,10 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from datetime import datetime
 import math
 
-class MultiHeadSelfAttention(nn.Module):
-    """
-    Calculates self-attention according to [Vaswani et al., NeurIPS, 2017]
-    """
+"""class MultiHeadSelfAttention(nn.Module):
     def __init__(self, hidden_size, number_of_attention_heads):
         super().__init__()
         # The number of attention heads cannot be more than the hidden size
@@ -64,7 +61,7 @@ class MultiHeadSelfAttention(nn.Module):
         
         # Now produce the contextualized vectors for each head
         # The tensor below will have shape (batch_size, number_of_heads, seq_length, head_size)
-        self_attention_all_heads_separately = torch.matmul(attention_probs, V)
+        attention_output = torch.matmul(attention_probs, V)
         self_attention_all_heads_separately = attention_output.permute(0, 2, 1, 3).contiguous().view(hidden_states.size(0), -1, self.all_head_size)
 
         # For each token, we now want to bring together the representation coming from each head.
@@ -73,7 +70,76 @@ class MultiHeadSelfAttention(nn.Module):
         self_attention = attention_output.permute(0, 2, 1, 3).contiguous().view(hidden_states.size(0), -1, self.all_head_size)
 
         # Finally, make sure that the output has the correct dimensions (batch_size,seq_length,hidden_size)
-        return self.final( self_attention )
+        return self.final( self_attention )"""
+
+class MultiHeadSelfAttention(nn.Module):
+    """
+    Calculates self-attention according to [Vaswani et al., NeurIPS, 2017]
+    """
+    def __init__(self, hidden_size, number_of_attention_heads):
+        super().__init__()
+        # The number of attention heads cannot be more than the hidden size
+        assert hidden_size > number_of_attention_heads
+        
+        self.number_of_attention_heads = number_of_attention_heads
+        # Divide the hidden_size roughly equal over the different heads
+        self.attention_head_size = int(hidden_size / number_of_attention_heads)
+        self.all_head_size = number_of_attention_heads * self.attention_head_size
+
+        # Mapping from input to the query, key, and, value vectors
+        self.query = nn.Linear(hidden_size, self.all_head_size, bias=False)
+        self.key = nn.Linear(hidden_size, self.all_head_size, bias=False)
+        self.value = nn.Linear(hidden_size, self.all_head_size, bias=False)
+
+        self.final = nn.Linear(self.all_head_size, hidden_size, bias=False)
+
+
+    def reshape_for_multihead_attention(self, x):
+        # x has the shape (batch_size, seq_length, hidden_size)
+        B,S,_ = x.shape
+
+        # but we want to split the representation of each token into 'number_of_heads' parts:
+        x = x.reshape(B,S,self.number_of_attention_heads,self.attention_head_size)
+
+        # and treat each part separately. Thus, we need the final tensor to have shape
+        # (batch_size, number_of_heads, seq_length, attention_head_size)
+        return x.permute(0, 2, 1, 3)
+
+    
+    def forward(self, hidden_states):
+        # All of the tensors below will have the shape (batch_size, seq_length, hidden_size)
+        query_all_heads = self.query(hidden_states)
+        key_all_heads = self.key(hidden_states)
+        value_all_heads = self.value(hidden_states)
+
+        # All of the tensors below will have the shape (batch_size, number_of_heads, seq_length, attention_head_size)
+        Q = self.reshape_for_multihead_attention(query_all_heads)
+        K = self.reshape_for_multihead_attention(key_all_heads)
+        V = self.reshape_for_multihead_attention(value_all_heads)
+
+        # attention_scores will have the shape(batch_size, number_of_heads, seq_length, seq_length)
+        attention_scores = torch.matmul(Q, K.permute(0, 1, 3, 2))
+
+        # Scale to reduce variance
+        attention_scores /= torch.sqrt(torch.tensor(self.attention_head_size).float())
+
+        # Create a mask to ensure unidirectional (causal) attention
+        seq_length = hidden_states.size(1)
+        causal_mask = torch.tril(torch.ones((seq_length, seq_length), device=hidden_states.device)).unsqueeze(0).unsqueeze(0)
+        attention_scores = attention_scores.masked_fill(causal_mask == 0, float('-inf'))
+
+        # Use softmax to turn the attention scores into probabilities.
+        attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+        
+        # Now produce the contextualized vectors for each head
+        attention_output = torch.matmul(attention_probs, V)
+        self_attention_all_heads_separately = attention_output.permute(0, 2, 1, 3).contiguous().view(hidden_states.size(0), -1, self.all_head_size)
+
+        # For each token, we now want to bring together the representation coming from each head.
+        self_attention = attention_output.permute(0, 2, 1, 3).contiguous().view(hidden_states.size(0), -1, self.all_head_size)
+
+        # Finally, make sure that the output has the correct dimensions (batch_size, seq_length, hidden_size)
+        return self.final(self_attention)
     
     
 class PositionwiseFFN(nn.Module):
