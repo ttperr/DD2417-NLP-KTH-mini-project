@@ -54,30 +54,32 @@ class CharDataset(Dataset) :
                 feat_ids.append(self.char_to_id[c])
             
             words_a_id = [self.char_to_id[c] for c in words_a]
-            word_id = [self.char_to_id[c] for c in words]
-                        
-            # Building features and labels. Contexts using beginning of answer and end of question
-            for i in range(len(lbl_ids)) :
-                # First sequential version of the context
-                if self.seq_ctxt :
-                    ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
-                    self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
-                    self.labels.append(lbl_ids[i])
+            
 
-                else :
-                    # Second version
-                    if len(words_q) - len(lbl_chars) > max_len//2 :
-                        ctxt = words_a_id[-max_len//2:] + feat_ids[-max_len//2 + i:] + lbl_ids[:i]
-                    else :
+            # Building features and labels. Contexts using beginning of answer and end of question
+            
+            ### First sequential version of the context
+            if self.seq_ctxt : 
+                for i in range(len(lbl_ids)-1) :
+                    if self.seq_ctxt :
                         ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
-                    self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt)
-                    self.labels.append(lbl_ids[i])
+                        self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
+                        self.labels.append(lbl_ids[i+1])
+
+            ### Second version of the context
+            else :
+                if len(words_q) - len(lbl_chars) > max_len//2 :
+                    ctxt = words_a_id[-max_len//2:] + feat_ids[-max_len//2 + i:] + lbl_ids[:i]
+                else :
+                    ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
+                self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt)
+                self.labels.append(lbl_ids[i])
 
                 # Checking that the dimension is correct
                 if len([self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt )!= max_len :
                     print(seq[::-1])
 
-        # shuffling the dataset
+        # Shuffling the dataset
         combined = list(zip(self.datapoints, self.labels))
         random.shuffle(combined)
         self.datapoints, self.labels = zip(*combined)
