@@ -61,23 +61,31 @@ class CharDataset(Dataset) :
             ### First sequential version of the context
             if self.seq_ctxt : 
                 for i in range(len(lbl_ids)-1) :
-                    if self.seq_ctxt :
-                        ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
-                        self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
-                        self.labels.append(lbl_ids[i+1])
+                    ctxt = feat_ids[-max_len + i:] + lbl_ids[:i] if len(lbl_ids[:i]) < max_len else lbl_ids[-max_len:i]
+                    self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
+                    self.labels.append(lbl_ids[i+1])
 
             ### Second version of the context
             else :
-                if len(words_q) - len(lbl_chars) > max_len//2 :
-                    ctxt = words_a_id[-max_len//2:] + feat_ids[-max_len//2 + i:] + lbl_ids[:i]
-                else :
-                    ctxt = feat_ids[-max_len + i:] + lbl_ids[:i]
-                self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt)
-                self.labels.append(lbl_ids[i])
+                len_q = len(words_q)
+                for i in range(len(lbl_ids)-1) :
+                    len_q_ctxt = len_q - len(lbl_ids) + i
 
-                # Checking that the dimension is correct
-                if len([self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt )!= max_len :
-                    print(seq[::-1])
+                    # Sequential context, when short question or short answer
+                    if len_q_ctxt <= max_len//2 or len(words_a) < max_len//8 :
+                        ctxt = feat_ids[-max_len + i:] + lbl_ids[:i] if len(lbl_ids[:i]) < max_len else lbl_ids[-max_len:i]
+                        self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
+
+                    # Keeping the beginning of the question
+                    else :
+                        ctxt = words_a_id[-max_len//2:] + feat_ids[-max_len//2 + i:] + lbl_ids[:i] if len(lbl_ids[:i]) < max_len//2 else words_a_id[-max_len//2:] + lbl_ids[-max_len//2:i]
+                        self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
+                    
+                    self.labels.append(lbl_ids[i+1])
+
+                    # Checking that the dimension is correct
+                    if len(ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)))!= max_len :
+                        print("FEAT LEN", len(ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt))))
 
         # Shuffling the dataset
         combined = list(zip(self.datapoints, self.labels))
