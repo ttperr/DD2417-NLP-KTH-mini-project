@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{graphicx} % Required for inserting images
+\usepackage{biblatex} % Required for bibliography
 
 \title{Mini-project - DD2417 - NLP \\ Question word prediction}
 \author{Tristan Perrot \and Romain Darous}
@@ -17,7 +18,13 @@
     This report presents the results of the mini-project for the course DD2417 - Natural Language Processing at KTH. The goal of the project is to predict the question word of a question given the rest of the question and the answer. We present the dataset, different models and the results of the project. We also discuss the limitations of the model and the possible improvements that could be made.
 \end{abstract}
 
+\section{Relevant Background}
+
+One of the most renowned challenges within the field of Natural Language Processing (NLP) pertains to question answering and next-word prediction. Our project was specifically oriented towards addressing the intricate task of predicting question words, representing a departure from conventional methodologies. Our aim was to anticipate the interrogative segment of a query, leveraging contextual cues from both the preceding question and the provided answer. To this end, we formulated a methodology deeply rooted in the Next Word Prediction framework, wherein the model operates in reverse, commencing from the terminus of the input and progressing towards its inception, thereby deducing the initial words of the query. Alternatively, this challenge may be construed as a classification endeavor within the domain of NLP, wherein inputs undergo categorization employing an appropriate model.
+
 \section{Dataset}
+
+For the data, we needed a huge Question - Answer dataset. That is why we used the 
 
 \section{Models}
 
@@ -28,5 +35,9 @@
 \section{Results}
 
 \section{Conclusion}
+
+\medskip
+
+\printbibliography
 
 \end{document}
