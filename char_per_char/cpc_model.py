@@ -102,9 +102,9 @@ class EncoderBlock(nn.Module):
     and applies the LayerNorm before the self-attention, and before the FFN, as this
     has proved to be beneficial (see [Nguyen and Salazar 2019]).
     """
-    def __init__(self, hidden_size, number_of_attention_heads, dropout_prob) :
+    def __init__(self, hidden_size, number_of_attention_heads, dropout_prob, is_causal = True) :
         super().__init__()
-        self.attn = MultiHeadSelfAttention(hidden_size, number_of_attention_heads)
+        self.attn = MultiHeadSelfAttention(hidden_size, number_of_attention_heads, is_causal)
         self.ffn = PositionwiseFFN(hidden_size, dropout_prob)
         self.dropout = nn.Dropout(dropout_prob)
         self.ln1 = nn.LayerNorm(hidden_size)
@@ -122,7 +122,7 @@ class EncoderBlock(nn.Module):
 
 class CharLM(nn.Module) :
 
-    def __init__(self, config, no_of_input_chars, MAXLEN ) :
+    def __init__(self, config, no_of_input_chars, MAXLEN, is_causal = True ) :
         super(CharLM, self).__init__()
         self.MAXLEN = MAXLEN
         self.config = config
@@ -133,7 +133,7 @@ class CharLM(nn.Module) :
         self.positional = nn.Parameter(torch.randn(1, self.MAXLEN, config.hidden_size))
         modules = [EncoderBlock(config.hidden_size, 
                                 config.number_of_attention_heads,
-                                config.dropout_prob) for _ in range(config.number_of_transformer_encoders)]
+                                config.dropout_prob, is_causal) for _ in range(config.number_of_transformer_encoders)]
         self.transformers = nn.ModuleList(modules)
         self.final = nn.Linear(config.hidden_size*self.MAXLEN, no_of_input_chars)
 
