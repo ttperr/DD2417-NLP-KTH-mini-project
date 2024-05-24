@@ -126,7 +126,7 @@ class CharLM(nn.Module) :
         super(CharLM, self).__init__()
         self.MAXLEN = MAXLEN
         self.config = config
-        self.embed = nn.Embedding(no_of_input_chars,config.hidden_size)
+        self.embed = nn.Embedding(no_of_input_chars, config.hidden_size)
         # Make sure that the padding symbol (which has ID 0) is embedded
         # as a vector of 0s.
         self.embed.weight.data[0].fill_(0)
