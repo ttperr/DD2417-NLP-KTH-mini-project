@@ -32,7 +32,7 @@ class CharDataset(Dataset) :
             words = seq.split(" ")
 
             lbl_words = " ".join(words[-2:])
-            lbl_chars = list(lbl_words) if lbl_words[0][0] != '?' else list(lbl_words)[1:]
+            lbl_chars = list(lbl_words) if lbl_words[0][0] != '?' else list(lbl_words)[1:] + [self.BOQ]
 
             feat_words = " ".join(words[:-2])
             feat_chars = list(feat_words) + ['?' if lbl_words[0][0] == '?' else '']
