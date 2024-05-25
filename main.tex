@@ -2,6 +2,8 @@
 \usepackage{graphicx} % Required for inserting images
 \usepackage{biblatex} % Required for bibliography
 
+\addbibresource{ref.bib}
+
 \title{Mini-project - DD2417 - NLP \\ Question word prediction}
 \author{Tristan Perrot \and Romain Darous}
 \date{March 2024}
@@ -20,23 +22,47 @@
 
 \section{Relevant Background}
 
-One of the most renowned challenges within the field of Natural Language Processing (NLP) pertains to question answering and next-word prediction. Our project was specifically oriented towards addressing the intricate task of predicting question words, representing a departure from conventional methodologies. Our aim was to anticipate the interrogative segment of a query, leveraging contextual cues from both the preceding question and the provided answer. To this end, we formulated a methodology deeply rooted in the Next Word Prediction framework, wherein the model operates in reverse, commencing from the terminus of the input and progressing towards its inception, thereby deducing the initial words of the query. Alternatively, this challenge may be construed as a classification endeavor within the domain of NLP, wherein inputs undergo categorization employing an appropriate model.
+One of the most renowned challenges within the field of Natural Language Processing (NLP) pertains to question answering and next-word prediction. Our project was specifically oriented towards addressing the task of predicting question words, representing a departure from conventional methodologies. Our aim was to anticipate the interrogative segment of a query, leveraging contextual cues from both the preceding question and the provided answer. To this end, we formulated a methodology deeply rooted in the Next Word Prediction framework, wherein the model operates in reverse, commencing from the terminus of the input and progressing towards its inception, thereby deducing the initial words of the query. Alternatively, this challenge may be construed as a classification endeavor within the domain of NLP, wherein inputs undergo categorization employing an appropriate model.
 
 \section{Dataset}
 
-For the data, we needed a huge Question - Answer dataset. That is why we used the 
+For the data, we needed a huge Question - Answer dataset. That is why we used the SQuAD2.0 dataset. This dataset ...
 
 \section{Models}
 
 \subsection{Classifier}
 
+\subsection{Character per character question prediction}
+
+\subsubsection{Motivation}
+The amount of words we have to recover to complete the question is small (two at most). However, when looking at the size of the vocabulary it would represent, it is still very important as there are various ways to ask a question (oral or written form, use of prepositions, , choice of auxiliary, ...). It makes it impossible to train a model that outputs the most likely word as the vocabulary is to high compare to the size of the dataset.
+
+However, the number of characters we need is still the same and restricts to reasonable amount the number of possible outputs. Moreover, only a small amount of characters need to be recovered and are similar in most questions. It makes the use of a character prediction model relevant, as it is bad at predicting long strings but could perform well at recovering one or two words.
+
+\subsubsection{The model}
+One datapoint here is the question and its answer concatenated.
+We decided to use an Transformer-based architecture to perform character-per-character prediction with attention. As the words we need to recover are always at the beginning of the question, we decided to reverse the data. For instance, "How are you ? I am fine." becomes ".enif ma I ? uoy era woH".
+
+Then, we decided to use causal attention only given the past context. As we flipped the characters of our datapoints, predicting the next character is equivalent to predicitng the missing characters of the question by going backward.
+
+Regarding how to compute the \textbf{context}, we tried two different approaches. First, we just computed the usual context by using as features the previous characters. However, when the question is long, we don't reach the answer to the question, which can be meaningful regarding how to fulfill the beginning of the question. Hence, we implemented a context which forces half of it to be the beginning of the answer.
+\newline \newline
+
+\textbf{Example} :
+
 \subsection{Pre-trained BERT}
 
 \section{Results}
 
+\subsection{Character per character question prediction}
+
+\subsubsection{Hyperparameters}
+
 \section{Conclusion}
 
 \medskip
+
+\section{References}
 
 \printbibliography
 
