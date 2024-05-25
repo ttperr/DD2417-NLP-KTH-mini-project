@@ -22,15 +22,35 @@
 
 \section{Relevant Background}
 
-One of the most renowned challenges within the field of Natural Language Processing (NLP) pertains to question answering and next-word prediction. Our project was specifically oriented towards addressing the task of predicting question words, representing a departure from conventional methodologies. Our aim was to anticipate the interrogative segment of a query, leveraging contextual cues from both the preceding question and the provided answer. To this end, we formulated a methodology deeply rooted in the Next Word Prediction framework, wherein the model operates in reverse, commencing from the terminus of the input and progressing towards its inception, thereby deducing the initial words of the query. Alternatively, this challenge may be construed as a classification endeavor within the domain of NLP, wherein inputs undergo categorization employing an appropriate model.
+Natural Language Processing (NLP) encompasses a variety of tasks including text generation, error recovery, translation, and more. Despite their diverse objectives, these tasks share a common aim: given a sequence of strings, the ability to predict the subsequent text or deduce missing elements based on contextual information.
+
+Generative AI tools like ChatGPT or Gemini have showcased the remarkable capabilities of text generation models. Their performance is so impressive that it might seem plausible to address our problem by simply inputting the partial question and obtaining complete it through a Large Language Model (LLM). However, these models are trained on extensive datasets and complex architectures. As our project focus on a specific NLP task, it's worth exploring whether we can construct a more straightforward model, trainable on a smaller dataset and within a reasonable timeframe.
+
+One initial idea is to employ a Multilayer Perceptron (MLP) \cite{popescu2009multilayer} network with a context window to aggregate the embedding of several dictionary elements. However, this approach demands a fixed input size and struggles with retaining long-term memory.
+
+To accommodate inputs of varying lengths, recurrent neural networks (RNNs) have demonstrated superior performance. Models utilizing Long Short-Term Memory (LSTM) units, for instance \cite{santhanam2020context}, have exhibited promising results. A significant breakthrough came with Transformers and the introduction of attention mechanisms \cite{vaswani2017attention}. While traditional text generation models relied on recurrent neural networks, this novel architecture dispenses with such complexities and delivers remarkable outcomes. By stacking Transformers and employing bidirectional attention, models like BERT \cite{devlin2019bert} have been developed and show stunning results regarding information recovery in gap-fill texts.
+
+Each model begins with the construction of a vocabulary, which can be word-based, phoneme-based, or character-based. A spectrum of methods exists, ranging from elementary to cutting-edge approaches. An essential consideration lies in vocabulary embedding. From traditional indexing to more advanced techniques such as Wav2Vec \cite{schneider2019wav2vec}, a multitude of approaches exist. For the sake of simplicity, our embedding will remain simple here and we won't use any pre-trained Deep Learning model.
+
+This project will explore three distinct methodologies: implementing a classifier for question recovery using LSTM units, constructing a Transformer-based character-by-character prediction model, and comparing these approaches against the pre-trained BERT model.
 
 \section{Dataset}
 
-For the data, we needed a huge Question - Answer dataset. That is why we used the SQuAD2.0 dataset. This dataset ...
+For the data, we needed a huge Question - Answer dataset. That is why we used the SQuAD2.0 dataset \cite{squad}. This dataset comprises a substantial collection of questions and answers, specifically designed to train models in distinguishing between answerable and unanswerable questions using contextual information. Consequently, we have selected only the questions that had corresponding answers and did not utilize the surrounding context of the questions. Thus, the sole context available for the model to learn from is the content of the questions themselves and the answer associated.
 
 \section{Models}
 
 \subsection{Classifier}
+
+\subsubsection{Motivation}
+
+As said upper, we wanted firstly to answer the question word prediction problem as a classification problem. That's why, we listed possible question words (that could be more than a single word like 'In what' or 'In which'). Therefore, we merged each question and answer without the question word and classify it. We use \textbf{70292} questions / answers and hold 20\% of them for validation and tests.
+
+\subsubsection{LSTM}
+
+For the first classifier, we used an LSTM based model \cite{lstm1997}. After merging question and answer and flipped it from the beginning to the end to get the prediction at the end, we trained a one layer LSTM with an embedding layer. We used cross entropy loss and Adam optimizer. \ref{lstm-loss} shows the loss of training with early stopping with patience.
+
+\subsubsection{BERT}
 
 \subsection{Character per character question prediction}
 
@@ -39,18 +59,35 @@ The amount of words we have to recover to complete the question is small (two at
 
 However, the number of characters we need is still the same and restricts to reasonable amount the number of possible outputs. Moreover, only a small amount of characters need to be recovered and are similar in most questions. It makes the use of a character prediction model relevant, as it is bad at predicting long strings but could perform well at recovering one or two words.
 
+\subsubsection{The vocabulary and dataset adaptation}
+Here the vocabulary will be the characters present in the dataset. We will not use any embedding method, but only sequential indexing of the characters, to keep the model simple. 
+
+\subsubsection{Dataset and labels}
+One datapoint here is the question and its answer concatenated. We decided to keep unanswerable question as well in the dataset, as the way they were formulated is similar to answerable ones, especially at the beginning, which is what we are interesting in recovering. \newline
+
+As the words we need to recover are always at the beginning of the question, we decided to reverse their characters. For instance, "How are you ? I am fine." becomes ".enif ma I ? uoy era woH". Now the problem becomes :
+
+"Predicting the next character given the past context".
+
+As feature, for every datapoint, we will start with all the characters until the ones from the last two words of the question. Then label is the next character to come. Then using a sliding context window, we can build several datapoints for one sentence by adding the characters of the two words to recover one after another as features, and using the next one as label. We also added a \textbf{BOQ} token (stands for "Beginning Of Question") so that when recovering a question, the model can stop when it predicts this character.
+
 \subsubsection{The model}
-One datapoint here is the question and its answer concatenated.
-We decided to use an Transformer-based architecture to perform character-per-character prediction with attention. As the words we need to recover are always at the beginning of the question, we decided to reverse the data. For instance, "How are you ? I am fine." becomes ".enif ma I ? uoy era woH".
+We decided to use a \textbf{Transformer-based architecture} to perform character-per-character prediction with attention. 
+Then, we decided to use causal attention only given the past context. As we flipped the characters of our datapoints, predicting the next character is equivalent to predicitng the missing characters of the question by going backward and using what comes next ine the question and the answer as context.
 
-Then, we decided to use causal attention only given the past context. As we flipped the characters of our datapoints, predicting the next character is equivalent to predicitng the missing characters of the question by going backward.
+\subsubsection{Computing the context}
 
-Regarding how to compute the \textbf{context}, we tried two different approaches. First, we just computed the usual context by using as features the previous characters. However, when the question is long, we don't reach the answer to the question, which can be meaningful regarding how to fulfill the beginning of the question. Hence, we implemented a context which forces half of it to be the beginning of the answer.
+Regarding how to compute the \textbf{context}, we tried two different approaches. 
+
+\begin{itemize}
+    \item \textbf{Sequential context}
+    \item \textbf{Split context}
+\end{itemize}
+
+First, we just computed the usual context by using as features the previous characters. However, when the question is long, we don't reach the answer to the question, which can be meaningful regarding how to fulfill the beginning of the question. Hence, we implemented a context which forces half of it to be the beginning of the answer.
 \newline \newline
 
-\textbf{Example} :
-
-\subsection{Pre-trained BERT}
+\subsubsection{Example}
 
 \section{Results}
 
@@ -62,8 +99,16 @@ Regarding how to compute the \textbf{context}, we tried two different approaches
 
 \medskip
 
-\section{References}
+\newpage
 
 \printbibliography
+
+\newpage
+
+\appendix
+
+\section{Classification results}
+
+\subsection{Training}
 
 \end{document}
