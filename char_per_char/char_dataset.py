@@ -32,7 +32,7 @@ class CharDataset(Dataset) :
             words = seq.split(" ")
 
             lbl_words = " ".join(words[-2:])
-            lbl_chars = list(lbl_words) if lbl_words[0][0] != '?' else list(lbl_words)[1:] + [self.BOQ]
+            lbl_chars = (list(lbl_words) if lbl_words[0][0] != '?' else list(lbl_words)[1:]) + [self.BOQ]
 
             feat_words = " ".join(words[:-2])
             feat_chars = list(feat_words) + ['?' if lbl_words[0][0] == '?' else '']
@@ -60,28 +60,28 @@ class CharDataset(Dataset) :
             
             ### First sequential version of the context
             if self.seq_ctxt : 
-                for i in range(len(lbl_ids)-1) :
+                for i in range(len(lbl_ids)) :
                     ctxt = feat_ids[-max_len + i:] + lbl_ids[:i] if len(lbl_ids[:i]) < max_len else lbl_ids[-max_len:i]
-                    self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
-                    self.labels.append(lbl_ids[i+1])
+                    self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt )
+                    self.labels.append(lbl_ids[i])
 
             ### Second version of the context
             else :
-                len_q = len(words_q)
-                for i in range(len(lbl_ids)-1) :
+                len_q = len(words_q) + 1 # counting the <BOS> token
+                for i in range(len(lbl_ids)) :
                     len_q_ctxt = len_q - len(lbl_ids) + i
 
                     # Sequential context, when short question or short answer
                     if len_q_ctxt <= max_len//2 or len(words_a) < max_len//8 :
                         ctxt = feat_ids[-max_len + i:] + lbl_ids[:i] if len(lbl_ids[:i]) < max_len else lbl_ids[-max_len:i]
-                        self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
+                        self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt )
 
                     # Keeping the beginning of the question
                     else :
                         ctxt = words_a_id[-max_len//2:] + feat_ids[-max_len//2 + i:] + lbl_ids[:i] if len(lbl_ids[:i]) < max_len//2 else words_a_id[-max_len//2:] + lbl_ids[-max_len//2:i]
                         self.datapoints.append( ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) )
                     
-                    self.labels.append(lbl_ids[i+1])
+                    self.labels.append(lbl_ids[i])
 
                     # Checking that the dimension is correct
                     if len(ctxt + [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)))!= max_len :
