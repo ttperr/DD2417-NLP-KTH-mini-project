@@ -19,7 +19,7 @@ class CharDataset(Dataset) :
     id_to_char[0] = PADDING_SYMBOL
     id_to_char[1] = BOQ
 
-    def __init__(self, dataset, max_len, seq_ctxt = True) :
+    def __init__(self, dataset, max_len, seq_ctxt = True, is_Train = True) :
         self.datapoints = []
         self.labels = []
         self.seq_ctxt = seq_ctxt
@@ -43,18 +43,19 @@ class CharDataset(Dataset) :
             feat_ids = []
 
             for c in lbl_chars:
-                if c not in self.char_to_id.keys():
+                if c not in self.char_to_id and is_Train:
                     self.char_to_id[c] = len(self.id_to_char)
                     self.id_to_char[len(self.id_to_char)] = c
-                lbl_ids.append(self.char_to_id[c])
+                lbl_ids.append(self.char_to_id[c] if c in self.char_to_id else self.char_to_id[self.PADDING_SYMBOL])
 
             for c in feat_chars:
-                if c not in self.char_to_id.keys():
+                if c not in self.char_to_id and is_Train:
                     self.char_to_id[c] = len(self.id_to_char)
                     self.id_to_char[len(self.id_to_char)] = c
                 feat_ids.append(self.char_to_id[c])
             
-            words_a_id = [self.char_to_id[c] for c in words_a]
+            words_a_id = [self.char_to_id[c] if c in self.char_to_id 
+                          else self.char_to_id[self.PADDING_SYMBOL] for c in words_a]
             
 
             # Building features and labels. Contexts using beginning of answer and end of question
@@ -62,7 +63,8 @@ class CharDataset(Dataset) :
             ### First sequential version of the context
             if self.seq_ctxt : 
                 for i in range(len(lbl_ids)) :
-                    ctxt = feat_ids[-max_len + i:] + lbl_ids[:i] if len(lbl_ids[:i]) < max_len else lbl_ids[-max_len:i]
+                    ctxt = feat_ids[-max_len + i:] + lbl_ids[:i] if len(lbl_ids[:i]) < max_len \
+                                                                else lbl_ids[-max_len:i]
                     self.datapoints.append( [self.char_to_id[self.PADDING_SYMBOL]] * (max_len - len(ctxt)) + ctxt )
                     self.labels.append(lbl_ids[i])
 

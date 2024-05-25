@@ -122,7 +122,7 @@ class EncoderBlock(nn.Module):
 
 class CharLM(nn.Module) :
 
-    def __init__(self, config, no_of_input_chars, MAXLEN, is_causal = True ) :
+    def __init__(self, config, no_of_input_chars, MAXLEN, is_causal = True,) :
         super(CharLM, self).__init__()
         self.MAXLEN = MAXLEN
         self.config = config
