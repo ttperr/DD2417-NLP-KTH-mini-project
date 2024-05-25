@@ -26,7 +26,9 @@ class CharDataset(Dataset) :
 
         for seq in dataset:
             # Will be used for context
-            if len(seq.split("?")) == 1 : words_a = seq.split("?")[0]
+            if len(seq.split("?")) == 1 : 
+                words_a = seq.split("?")[0]
+                words_q = ""
             else : words_a, words_q = seq.split("?")[0], seq.split("?")[1]
 
             words = seq.split(" ")
