@@ -52,7 +52,7 @@ class CharDataset(Dataset) :
                 if c not in self.char_to_id and is_Train:
                     self.char_to_id[c] = len(self.id_to_char)
                     self.id_to_char[len(self.id_to_char)] = c
-                feat_ids.append(self.char_to_id[c])
+                feat_ids.append(self.char_to_id[c] if c in self.char_to_id else self.char_to_id[self.PADDING_SYMBOL])
             
             words_a_id = [self.char_to_id[c] if c in self.char_to_id 
                           else self.char_to_id[self.PADDING_SYMBOL] for c in words_a]
