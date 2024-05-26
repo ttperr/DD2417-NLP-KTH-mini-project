@@ -1,11 +1,15 @@
 \documentclass{article}
 \usepackage{graphicx} % Required for inserting images
 \usepackage{biblatex} % Required for bibliography
+\usepackage{hyperref} % Required for references
 
 \addbibresource{ref.bib}
 
 \title{Mini-project - DD2417 - NLP \\ Question word prediction}
-\author{Tristan Perrot \and Romain Darous}
+\author{
+    Tristan Perrot \\ \href{mailto:tristanp@kth.se}{tristanp@kth.se}
+    \and Romain Darous \\ \href{mailto:darous@kth.se}{darous@kth.se}
+}
 \date{March 2024}
 
 
@@ -48,53 +52,98 @@ As said upper, we wanted firstly to answer the question word prediction problem 
 
 \subsubsection{LSTM}
 
-For the first classifier, we used an LSTM based model \cite{lstm1997}. After merging question and answer and flipped it from the beginning to the end to get the prediction at the end, we trained a one layer LSTM with an embedding layer. We used cross entropy loss and Adam optimizer. \ref{lstm-loss} shows the loss of training with early stopping with patience.
+For the first classifier, we used an Long Short-Term Memory (LSTM) word based model \cite{lstm1997}. After merging the question and answer, and inverting the sequence to place the prediction at the end, we trained a single-layer LSTM network with an embedding layer. The primary objective of employing the LSTM architecture was to leverage its capabilities for NLP tasks, thereby enabling the classification of the input among all possible question words.
 
 \subsubsection{BERT}
+
+We aimed to implement a BERT classification model. BERT \cite{devlin2019bert}, which stands for Bidirectional Encoder Representations from Transformers, is a language model rooted in the transformer architecture \cite{vaswani2017attention}. It is designed for word prediction, leveraging training that involves masking and unmasking words within texts. We utilized a pre-trained BERT model and fine-tuned it for our specific task. Similar to the LSTM model, this model operates on words rather than characters. For our task, we masked each question word and combined each question with its corresponding answer as before, omitting the flipping process due to the attention-based nature of the model.
 
 \subsection{Character per character question prediction}
 
 \subsubsection{Motivation}
-The amount of words we have to recover to complete the question is small (two at most). However, when looking at the size of the vocabulary it would represent, it is still very important as there are various ways to ask a question (oral or written form, use of prepositions, , choice of auxiliary, ...). It makes it impossible to train a model that outputs the most likely word as the vocabulary is to high compare to the size of the dataset.
+The task of completing a question typically involves recovering only a few words, here no more than two. Despite this small number, considering the size of the vocabulary is crucial. Questions can vary greatly in their formulation, whether spoken or written, including the use of prepositions, choice of auxiliary, and other linguistic nuances. This diversity makes it challenging to train a model to predict the most likely word, especially given the extensive vocabulary compared to the dataset size.
 
-However, the number of characters we need is still the same and restricts to reasonable amount the number of possible outputs. Moreover, only a small amount of characters need to be recovered and are similar in most questions. It makes the use of a character prediction model relevant, as it is bad at predicting long strings but could perform well at recovering one or two words.
+However, the character count needed remains consistent, limiting the potential outputs to a manageable level. Additionally, the characters required for completion are often similar across different questions. This scenario makes a character prediction model quite relevant, as it may not excel at predicting long strings but could effectively recover one or two words.
 
 \subsubsection{The vocabulary and dataset adaptation}
 Here the vocabulary will be the characters present in the dataset. We will not use any embedding method, but only sequential indexing of the characters, to keep the model simple. 
 
 \subsubsection{Dataset and labels}
-One datapoint here is the question and its answer concatenated. We decided to keep unanswerable question as well in the dataset, as the way they were formulated is similar to answerable ones, especially at the beginning, which is what we are interesting in recovering. \newline
+Each data point in our dataset consists of a question and its answer concatenated together. We chose to include unanswerable questions as well, as their formulation often resembles answerable ones, especially at the beginning, which is our focus for recovery.
 
-As the words we need to recover are always at the beginning of the question, we decided to reverse their characters. For instance, "How are you ? I am fine." becomes ".enif ma I ? uoy era woH". Now the problem becomes :
+Since the words we aim to recover are always at the start of the question, we decided to reverse their characters. For example, "How are you? I am fine." becomes ".enif ma I? uoy era woH". This transforms our problem into predicting the next character given the preceding context.
 
-"Predicting the next character given the past context".
+For each data point, we begin with all the characters up to those of the last two words in the question as features. The label is the subsequent character. Using a sliding context window, we generate multiple data points from a single sentence by sequentially adding the characters of the two words we aim to recover as features and using the next character as the label. We also introduce a special token, \textbf{"BOQ"} (Beginning Of Question), to indicate where the model should stop when predicting a question.
 
-As feature, for every datapoint, we will start with all the characters until the ones from the last two words of the question. Then label is the next character to come. Then using a sliding context window, we can build several datapoints for one sentence by adding the characters of the two words to recover one after another as features, and using the next one as label. We also added a \textbf{BOQ} token (stands for "Beginning Of Question") so that when recovering a question, the model can stop when it predicts this character.
+Here's a step-by-step example of dataset construction:
+
+\begin{itemize}
+    \item \textbf{Raw Data Point:} "How are you? I am fine."
+    \item \textbf{Reversed Raw Data Point:} ".enif ma I? uoy era woH"
+    \item \textbf{Features:} ".enif ma I? uoy "
+    \item \textbf{Label:} "e"
+    \item Replace characters with their index,
+    \item Shift the context window to the right,
+    \item \textbf{Features:} "enif ma I? uoy e"
+    \item \textbf{Label:} "r"
+    \item Replace characters with their index,
+    \item Repeat for subsequent characters.
+\end{itemize}
+
 
 \subsubsection{The model}
-We decided to use a \textbf{Transformer-based architecture} to perform character-per-character prediction with attention. 
-Then, we decided to use causal attention only given the past context. As we flipped the characters of our datapoints, predicting the next character is equivalent to predicitng the missing characters of the question by going backward and using what comes next ine the question and the answer as context.
+We decided to use \textbf{tacked transformers} to perform character-per-character prediction with multi-head attention. Hyperparameters will be given in section \ref{cpc_hyperparams}.
+We decided to use \textbf{causal attention} only given the past context.
 
 \subsubsection{Computing the context}
 
 Regarding how to compute the \textbf{context}, we tried two different approaches. 
 
 \begin{itemize}
-    \item \textbf{Sequential context}
-    \item \textbf{Split context}
+    \item \textbf{Sequential context}: The usual context where features consist of the previous characters within a window length.
+    \item \textbf{Split context}: We compel the model to consider the answer if the question is too long. We believe the answer could provide valuable insights into completing the beginning of the question.
 \end{itemize}
-
-First, we just computed the usual context by using as features the previous characters. However, when the question is long, we don't reach the answer to the question, which can be meaningful regarding how to fulfill the beginning of the question. Hence, we implemented a context which forces half of it to be the beginning of the answer.
-\newline \newline
-
-\subsubsection{Example}
 
 \section{Results}
 
+\subsection{Classifiers}
+
+\subsubsection{LSTM}
+
+For the training process, we used cross entropy loss and Adam optimizer. Figure \ref{fig:lstm-loss} shows the loss of training with early stopping with patience.
+
+We obtain an accuracy on the test set of \textbf{73.26\%} which is quite good for this model. For a better evaluation of the performance, we used confusion matrix on the test dataset to see how well the model was behaving. The figure \ref{fig:lstm-conf} is that matrix. We can see that some words are better predicted than others. For example, the model predicts a lot of time \texttt{What} instead of \texttt{Why}. However, the model predicts really well words like \texttt{Why} and \texttt{What} when they are targeted. We can also see that some words were predicted whereas they never appear in the dataset initially.
+
+\subsubsection{BERT}
+
+Due to the power of the BERT architecture, we achieve to get, on the test set, an accuracy of \textbf{90\%} which is really great.
+Like before, we plotted and the confusion matrix in figure \ref{fig:bert-conf}. There, we can see that BERT clearly outperform the LSTM classifier. Almost every question words are well predicted. We can see that there is a small confusion on the words \texttt{What} and \texttt{Which} which is not surprising because they are quite similar and both could be used depending on the context. We can see here the power of self-attention and that we can achieve really great results for classification based on NLP.
+
 \subsection{Character per character question prediction}
 
-\subsubsection{Hyperparameters}
+\subsubsection{Hyperparameters}\label{cpc_hyperparams}
+\begin{itemize}
+    \item \textbf{Number of Transformer Encoders:} 4
+    \item \textbf{Number of Attention Heads:} 4
+    \item \textbf{Hidden Size:} 256
+    \item \textbf{Dropout Probability:} 0.1
+    \item \textbf{Patience (Early Stopping):} 5
+    \item \textbf{Batch Size:} 64
+    \item \textbf{Optimizer:} Adam
+    \item \textbf{Learning Rate:} 0.0003
+    \item \textbf{Weight Decay:} 0.000001
+    \item \textbf{Number of Epochs Max:} 100
+    \item \textbf{Is Causal:} True (When True, the attention is causal)
+    \item \textbf{Sequential Context:} True or False (True : Sequential context ; False : Split context)
+    \item \textbf{Maximum Length of context:} 32 or 64
+\end{itemize}
 
+We will perform a \textbf{grid search} on the context parameters to try to find a suitable choice. It gives a total of 4 models trained.
+
+\subsubsection{Choosing model}
+Here is a picture of some insights about the four models we trained.
+
+The most accurate was this one (test set
 \section{Conclusion}
 
 \medskip
@@ -110,5 +159,31 @@ First, we just computed the usual context by using as features the previous char
 \section{Classification results}
 
 \subsection{Training}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\linewidth]{results/classification/lstm loss.png}
+    \caption{LSTM training loss}
+    \label{fig:lstm-loss}
+\end{figure}
+
+\subsection{Confusion matrices}
+
+\section{Character model results}
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\linewidth]{results/classification/lstm conf.png}
+    \caption{LSTM confusion matrix}
+    \label{fig:lstm-conf}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\linewidth]{results/classification/conf bert.png}
+    \caption{BERT confusion matrix}
+    \label{fig:bert-conf}
+\end{figure}
 
 \end{document}
