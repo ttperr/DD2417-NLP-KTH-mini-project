@@ -66,7 +66,7 @@ The task of completing a question typically involves recovering only a few words
 However, the character count needed remains consistent, limiting the potential outputs to a manageable level. Additionally, the characters required for completion are often similar across different questions. This scenario makes a character prediction model quite relevant, as it may not excel at predicting long strings but could effectively recover one or two words.
 
 \subsubsection{The vocabulary and dataset adaptation}
-Here the vocabulary will be the characters present in the dataset. We will not use any embedding method, but only sequential indexing of the characters, to keep the model simple. 
+Here the vocabulary will be the characters present in the dataset. We will not use any embedding method, but only sequential indexing of the characters, to keep the model simple.
 
 \subsubsection{Dataset and labels}
 Each data point in our dataset consists of a question and its answer concatenated together. We chose to include unanswerable questions as well, as their formulation often resembles answerable ones, especially at the beginning, which is our focus for recovery.
@@ -97,7 +97,7 @@ We decided to use \textbf{causal attention} only given the past context.
 
 \subsubsection{Computing the context}
 
-Regarding how to compute the \textbf{context}, we tried two different approaches. 
+Regarding how to compute the \textbf{context}, we tried two different approaches.
 
 \begin{itemize}
     \item \textbf{Sequential context}: The usual context where features consist of the previous characters within a window length.
