@@ -34,7 +34,7 @@ One initial idea is to employ a Multilayer Perceptron (MLP) \cite{popescu2009mul
 
 To accommodate inputs of varying lengths, recurrent neural networks (RNNs) have demonstrated superior performance. Models utilizing Long Short-Term Memory (LSTM) units, for instance \cite{santhanam2020context}, have exhibited promising results. A significant breakthrough came with Transformers and the introduction of attention mechanisms \cite{vaswani2017attention}. While traditional text generation models relied on recurrent neural networks, this novel architecture dispenses with such complexities and delivers remarkable outcomes. By stacking Transformers and employing bidirectional attention, models like BERT \cite{devlin2019bert} have been developed and show stunning results regarding information recovery in gap-fill texts.
 
-Each model begins with the construction of a vocabulary, which can be word-based, phoneme-based, or character-based. A spectrum of methods exists, ranging from elementary to cutting-edge approaches. An essential consideration lies in vocabulary embedding. From traditional indexing to more advanced techniques such as Wav2Vec \cite{schneider2019wav2vec}, a multitude of approaches exist. For the sake of simplicity, our embedding will remain simple here and we won't use any pre-trained Deep Learning model.
+Each model begins with the construction of a vocabulary, which can be word-based, phoneme-based, or character-based. A spectrum of methods exists, ranging from elementary to cutting-edge approaches. An essential consideration lies in vocabulary embedding. From traditional indexing to more advanced techniques such as Word2Vec \cite{mikolov2013efficient}, a multitude of approaches exist. For the sake of simplicity, our embedding will remain simple here and we won't use any pre-trained Deep Learning model.
 
 This project will explore three distinct methodologies: implementing a classifier for question recovery using LSTM units, constructing a Transformer-based character-by-character prediction model, and comparing these approaches against the pre-trained BERT model.
 
@@ -122,10 +122,11 @@ Like before, we plotted and the confusion matrix in figure \ref{fig:bert-conf}. 
 \subsection{Character per character question prediction}
 
 \subsubsection{Hyperparameters}\label{cpc_hyperparams}
+
 \begin{itemize}
-    \item \textbf{Number of Transformer Encoders:} 4
-    \item \textbf{Number of Attention Heads:} 4
-    \item \textbf{Hidden Size:} 256
+    \item \textbf{Number of Transformer Encoders:} 2
+    \item \textbf{Number of Attention Heads:} 2
+    \item \textbf{Hidden Size:} 64
     \item \textbf{Dropout Probability:} 0.1
     \item \textbf{Patience (Early Stopping):} 5
     \item \textbf{Batch Size:} 64
@@ -134,17 +135,25 @@ Like before, we plotted and the confusion matrix in figure \ref{fig:bert-conf}. 
     \item \textbf{Weight Decay:} 0.000001
     \item \textbf{Number of Epochs Max:} 100
     \item \textbf{Is Causal:} True (When True, the attention is causal)
-    \item \textbf{Sequential Context:} True or False (True : Sequential context ; False : Split context)
+    \item \textbf{Sequential Context:} True or False (True : Sequential context ; False Split context)
     \item \textbf{Maximum Length of context:} 32 or 64
 \end{itemize}
 
 We will perform a \textbf{grid search} on the context parameters to try to find a suitable choice. It gives a total of 4 models trained.
 
-\subsubsection{Choosing model}
-Here is a picture of some insights about the four models we trained.
+\subsubsection{Model choice}
 
-The most accurate was this one (test set
+Overall, the models were quick to train, converging after a few iterations and stopping based on the patience criteria.
+
+Figure \ref{fig:cpc_eval} shows the results of training the four models. Overall, they have similar performance with a low test accuracy, barely reaching 25\%. By testing our model on examples, we observed that some interrogation words were correctly recovered and that the stopping token \textbf{BOQ} was often well predicted, ensuring that the question recovery stops correctly.
+
+We tried to stacking more encoders or to increase the hidden dimension, but it did not help improve the results; it made the model too complex and led to overfitting.
+
+
 \section{Conclusion}
+In this project, we explored different models for predicting question words given the rest of the question and the answer. The character-by-character models, despite their flexibility, were too simplistic, reaching only 25\% accuracy.
+
+The BERT model performed best, achieving a test accuracy of 90\%, proving the efficiency of pre-training. Conversely, the LSTM model achieved a lower accuracy of 73.26\%. These two models performed well but with a very small vocabulary. Future work could focus on expanding the vocabulary of BERT, our best performing model, to see how it performs with a more realistic range of words.
 
 \medskip
 
@@ -166,11 +175,8 @@ The most accurate was this one (test set
     \caption{LSTM training loss}
     \label{fig:lstm-loss}
 \end{figure}
-
+\newpage
 \subsection{Confusion matrices}
-
-\section{Character model results}
-
 
 \begin{figure}[ht]
     \centering
@@ -184,6 +190,15 @@ The most accurate was this one (test set
     \includegraphics[width=0.75\linewidth]{results/classification/conf bert.png}
     \caption{BERT confusion matrix}
     \label{fig:bert-conf}
+\end{figure}
+\newpage\newpage
+\section{Character per character model}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1.2\linewidth]{results/evaluation.png}
+    \caption{Evaluation of the four trained models.}
+    \label{fig:cpc_eval}
 \end{figure}
 
 \end{document}
