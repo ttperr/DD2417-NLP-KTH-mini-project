@@ -1,0 +1,5 @@
+,Running time,Last epoch,Type of context,Context size,Test accuracy (%)
+charlm_seq_32_es,0 days 00:15:23.375198,22,Sequential,32,24.28
+charlm_seq_64_es,0 days 00:11:13.627427,15,Sequential,64,24.1
+charlm_nseq_32_es,0 days 00:14:57.595770,22,Split,32,23.68
+charlm_nseq_64_es,0 days 00:16:09.428465,21,Split,64,24.14
