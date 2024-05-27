@@ -8,23 +8,56 @@ import random
 
 class CharDataset(Dataset) :
 
-    # class variables
+    # Dictionnaries
     char_to_id = {}
     id_to_char = {}
+
+    # Special characters
     PADDING_SYMBOL = '<PAD>'
     BOQ = '<BOQ>'
+    UNK = '<UNK>'
 
     char_to_id[PADDING_SYMBOL] = 0
     char_to_id[BOQ] = 1
+    char_to_id[UNK] = 2
+
     id_to_char[0] = PADDING_SYMBOL
     id_to_char[1] = BOQ
+    id_to_char[2] = UNK
 
-    def __init__(self, dataset, max_len, seq_ctxt = True, is_Train = True) :
+    # Building vocabulary
+    characters_tight = [
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+    'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+    ' ', ',', '.', '-', ';', ':', '!', '?', '0', '1', '2', '3', '4', 
+    '5', '6', '7', '8', '9'
+    ]
+    
+    characters_wide = [
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+        ' ', ',', '.', '\'', '-', ';', ':', '!', '?', '"', '(', ')', '[', 
+        ']', '{', '}', '&', '*', '+', '=', '<', '>', '@', '/', '\\', '|', '~', 
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+    ]
+
+
+    for c in characters_tight :
+        char_to_id[c] = len(id_to_char)
+        id_to_char[len(id_to_char)] = c
+
+    characters_tight.append(BOQ)
+
+    def __init__(self, dataset, max_len, seq_ctxt = True) :
         self.datapoints = []
         self.labels = []
         self.seq_ctxt = seq_ctxt
 
         for seq in dataset:
+            # Checking that the sentence is made of english characters
+            for c in seq :
+                if c not in self.characters_wide : continue
+
             # Will be used for context
             if '?' not in seq :
                 seq = '?' + seq
@@ -38,24 +71,18 @@ class CharDataset(Dataset) :
             feat_words = " ".join(words[:-2])
             feat_chars = list(feat_words) + ['?' if lbl_words[0][0] == '?' else '']
 
-            # Updating vocabulary
+            # COnverting characters into ids
             lbl_ids = []
             feat_ids = []
 
             for c in lbl_chars:
-                if c not in self.char_to_id and is_Train:
-                    self.char_to_id[c] = len(self.id_to_char)
-                    self.id_to_char[len(self.id_to_char)] = c
-                lbl_ids.append(self.char_to_id[c] if c in self.char_to_id else self.char_to_id[self.PADDING_SYMBOL])
+                lbl_ids.append(self.char_to_id[c] if c in self.char_to_id else self.char_to_id[self.UNK])
 
             for c in feat_chars:
-                if c not in self.char_to_id and is_Train:
-                    self.char_to_id[c] = len(self.id_to_char)
-                    self.id_to_char[len(self.id_to_char)] = c
-                feat_ids.append(self.char_to_id[c] if c in self.char_to_id else self.char_to_id[self.PADDING_SYMBOL])
+                feat_ids.append(self.char_to_id[c] if c in self.char_to_id else self.char_to_id[self.UNK])
             
             words_a_id = [self.char_to_id[c] if c in self.char_to_id 
-                          else self.char_to_id[self.PADDING_SYMBOL] for c in words_a]
+                          else self.char_to_id[self.UNK] for c in words_a]
             
 
             # Building features and labels. Contexts using beginning of answer and end of question
